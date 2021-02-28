@@ -21,11 +21,17 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         bool forSale;
     }
 
-    address _organiser;
-    uint256[] ticketsForSale;
-    uint256 _ticketPrice;
-    uint256 _totalSupply;
+    address private _organiser;
+    address[] private customers;
+    uint256[] private ticketsForSale;
+    uint256 private _ticketPrice;
+    uint256 private _totalSupply;
+
     mapping(uint256 => TicketDetails) private _ticketDetails;
+    mapping(address => uint256[]) private purchasedTickets;
+
+    // 1. Fetch all tickets for user
+    // 2. List all tickets for sale
 
     constructor(
         string memory festName,
@@ -76,7 +82,7 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         _;
     }
 
-    function mint(address to, address operator)
+    function mint(address operator)
         internal
         virtual
         isMinterRole
@@ -84,9 +90,9 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
     {
         _ticketIds.increment();
         uint256 newTicketId = _ticketIds.current();
-        _mint(to, newTicketId);
+        _mint(operator, newTicketId);
 
-        approve(operator, newTicketId);
+        // approve(operator, newTicketId);
 
         _ticketDetails[newTicketId] = TicketDetails({
             purchasePrice: _ticketPrice,
@@ -108,7 +114,7 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         );
 
         for (uint256 i = 0; i < numOfTickets; i++) {
-            mint(msg.sender, operator);
+            mint(operator);
         }
     }
 
@@ -116,9 +122,17 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         _saleTicketId.increment();
         uint256 saleTicketId = _saleTicketId.current();
 
-        require(hasRole(MINTER_ROLE, ownerOf(saleTicketId)));
+        require(
+            msg.sender == ownerOf(saleTicketId),
+            "Only initial purchase allowed"
+        );
 
         transferFrom(ownerOf(saleTicketId), buyer, saleTicketId);
+
+        if (!isCustomerExist(buyer)) {
+            customers.push(buyer);
+        }
+        purchasedTickets[buyer].push(saleTicketId);
     }
 
     function secondaryTransferTicket(address buyer, uint256 saleTicketId)
@@ -126,7 +140,25 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         // isSecondaryPurchaseEnable(saleTicketId)
         isValidSellAmount(saleTicketId)
     {
-        transferFrom(ownerOf(saleTicketId), buyer, saleTicketId);
+        address seller = ownerOf(saleTicketId);
+        uint256 sellingPrice = _ticketDetails[saleTicketId].sellingPrice;
+
+        transferFrom(seller, buyer, saleTicketId);
+
+        if (!isCustomerExist(buyer)) {
+            customers.push(buyer);
+        }
+
+        purchasedTickets[buyer].push(saleTicketId);
+
+        removeTicketFromCustomer(seller, saleTicketId);
+        removeTicketFromSale(saleTicketId);
+
+        _ticketDetails[saleTicketId] = TicketDetails({
+            purchasePrice: sellingPrice,
+            sellingPrice: 0,
+            forSale: false
+        });
     }
 
     function setSaleDetails(
@@ -150,7 +182,9 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         _ticketDetails[ticketId].sellingPrice = sellingPrice;
         _ticketDetails[ticketId].forSale = true;
 
-        ticketsForSale.push(ticketId);
+        if (!isSaleTicketAvailable(ticketId)) {
+            ticketsForSale.push(ticketId);
+        }
 
         approve(operator, ticketId);
     }
@@ -167,11 +201,95 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         return _ticketIds.current();
     }
 
-    function getNextSaleTicketId() public returns (uint256) {
+    function getNextSaleTicketId() public view returns (uint256) {
         return _saleTicketId.current();
     }
 
     function getSellingPrice(uint256 ticketId) public view returns (uint256) {
         return _ticketDetails[ticketId].sellingPrice;
+    }
+
+    // function getPurchaseDetails() public view returns (uint256, uint256) {
+    //     return (getNextSaleTicketId(), _ticketPrice);
+    // }
+
+    function getTicketsForSale() public view returns (uint256[] memory) {
+        return ticketsForSale;
+    }
+
+    function getTicketDetails(uint256 ticketId)
+        public
+        view
+        returns (
+            uint256 purchasePrice,
+            uint256 sellingPrice,
+            bool forSale
+        )
+    {
+        return (
+            _ticketDetails[ticketId].purchasePrice,
+            _ticketDetails[ticketId].sellingPrice,
+            _ticketDetails[ticketId].forSale
+        );
+    }
+
+    function getTicketsOfCustomer(address customer)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return purchasedTickets[customer];
+    }
+
+    function isCustomerExist(address buyer) internal view returns (bool) {
+        for (uint256 i = 0; i < customers.length; i++) {
+            if (customers[i] == buyer) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isSaleTicketAvailable(uint256 ticketId)
+        internal
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < ticketsForSale.length; i++) {
+            if (ticketsForSale[i] == ticketId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function removeTicketFromCustomer(address customer, uint256 ticketId)
+        internal
+    {
+        uint256 numOfTickets = purchasedTickets[customer].length;
+
+        for (uint256 i = 0; i < numOfTickets; i++) {
+            if (purchasedTickets[customer][i] == ticketId) {
+                for (uint256 j = i + 1; j < numOfTickets; j++) {
+                    purchasedTickets[customer][j - 1] = purchasedTickets[
+                        customer
+                    ][j];
+                }
+                purchasedTickets[customer].pop();
+            }
+        }
+    }
+
+    function removeTicketFromSale(uint256 ticketId) internal {
+        uint256 numOfTickets = ticketsForSale.length;
+
+        for (uint256 i = 0; i < numOfTickets; i++) {
+            if (ticketsForSale[i] == ticketId) {
+                for (uint256 j = i + 1; j < numOfTickets; j++) {
+                    ticketsForSale[j - 1] = ticketsForSale[j];
+                }
+                ticketsForSale.pop();
+            }
+        }
     }
 }

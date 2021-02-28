@@ -33,7 +33,7 @@ contract FestivalMarketplace {
         // 2. address.this transfers commision to organiser
         // 3. address(this) transfers sellingPrice to buyer
 
-        _token.transferFrom(buyer, seller, sellingPrice);
+        _token.transferFrom(buyer, seller, sellingPrice - commision);
         _token.transferFrom(buyer, _organiser, commision);
 
         _festival.secondaryTransferTicket(buyer, ticketId);
