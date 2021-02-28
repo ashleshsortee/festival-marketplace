@@ -1,0 +1,7 @@
+backup
+build
+client/node_modules
+.DS_Store
+node_modules
+package-lock.json
+client/package-lock.json
