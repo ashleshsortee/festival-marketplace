@@ -1,0 +1,17 @@
+version: "3"
+services:
+  ganache:
+    build:
+      context: .
+      dockerfile: dockerfile.ganache
+    ports:
+      - "8545:8545"
+
+  truffle:
+    build:
+      context: .
+      dockerfile: dockerfile.truffle
+    depends_on:
+      - ganache
+    volumes:
+      - ./client/src/abi:/app/build/
