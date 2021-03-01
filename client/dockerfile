@@ -1,0 +1,15 @@
+FROM node:alpine
+
+WORKDIR /app
+
+COPY package.json .
+
+RUN apk update && apk upgrade && apk add --no-cache bash git openssh
+RUN apk add --update python krb5 krb5-libs gcc make g++ krb5-dev
+
+RUN npm install --no-package-lock --build-from-source --force
+
+# COPY client directory folder
+COPY . .
+
+CMD ["npm","start"]
