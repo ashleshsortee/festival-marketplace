@@ -27,15 +27,11 @@ class Purchase extends Component {
     try {
       const initiator = await web3.eth.getCoinbase();
       const activeFests = await festivalFactory.methods.getActiveFests().call({ from: initiator });
-      console.log('console result', activeFests);
-
       const fests = await Promise.all(activeFests.map(async fest => {
         const festDetails = await festivalFactory.methods.getFestDetails(fest).call({ from: initiator });
         const [festName, festSymbol, ticketPrice, totalSupply, marketplace] = Object.values(festDetails);
         const nftInstance = await FestivalNFT(fest);
-        console.log('console fest');
         const saleId = await nftInstance.methods.getNextSaleTicketId().call({ from: initiator });
-        console.log('console details', festName, ticketPrice, totalSupply, saleId);
 
         return (
           <tr key={fest}>
@@ -49,7 +45,6 @@ class Purchase extends Component {
       }));
 
       this.setState({ festivals: fests });
-
     } catch (err) {
       renderNotification('danger', 'Error', err.message);
       console.log('Error while updating the fetivals', err);
@@ -58,22 +53,12 @@ class Purchase extends Component {
 
   onPurchaseTicket = async (marketplace, ticketPrice, initiator) => {
     try {
-      console.log('console marketPlace', marketplace);
-
       const marketplaceInstance = await FestivalMarketplace(marketplace);
-      console.log('console marketPlaceInstance', marketplaceInstance);
-
-      const approvalResult = await festToken.methods.approve(marketplace, ticketPrice).send({ from: initiator, gas: 6700000 });
-      console.log('console approvalResult', approvalResult);
-
-      const purchaseResult = await marketplaceInstance.methods.purchaseTicket().send({ from: initiator, gas: 6700000 });
-
-      console.log('console purchaseResult', purchaseResult);
-
+      await festToken.methods.approve(marketplace, ticketPrice).send({ from: initiator, gas: 6700000 });
+      await marketplaceInstance.methods.purchaseTicket().send({ from: initiator, gas: 6700000 });
       await this.updateFestivals();
 
       renderNotification('success', 'Success', `Ticket for the Festival purchased successfully!`);
-
     } catch (err) {
       console.log('Error while creating new festival', err);
       renderNotification('danger', 'Error', err.message);
@@ -82,18 +67,14 @@ class Purchase extends Component {
 
   inputChangedHandler = (e) => {
     const state = this.state;
-    console.log('input', e.target.name, e.target.value)
     state[e.target.name] = e.target.value;
     this.setState(state);
   }
 
   render() {
     return (
-
       <div class="container " class="col s12 m6 offset-m3 l4 offset-l4 z-depth-6 card-panel">
-
         <h4 class="center">Purchase Tickets</h4>
-
         <table id='requests' class="responsive-table striped" >
           <thead>
             <tr>
@@ -107,9 +88,7 @@ class Purchase extends Component {
             {this.state.festivals}
           </tbody>
         </table>
-
       </div >
-
     )
   }
 }

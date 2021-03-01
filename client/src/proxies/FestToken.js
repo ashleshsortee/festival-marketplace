@@ -1,5 +1,5 @@
 import Provider from './Provider';
-import FestToken from '../abi/FestToken.json';
+import FestToken from '../abi/contracts/FestToken.json';
 
 const provider = new Provider();
 

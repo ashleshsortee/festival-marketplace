@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import Web3 from 'web3';
 import festivalFactory from '../proxies/FestivalFactory';
 import FestivalNFT from '../proxies/FestivalNFT';
-import FestivalMarketplace from '../proxies/FestivalMarketplace';
-import festToken from '../proxies/FestToken';
 import renderNotification from '../utils/notification-handler';
 
 let web3;
@@ -33,34 +31,30 @@ class MyTickets extends Component {
     try {
       e.preventDefault();
       const initiator = await web3.eth.getCoinbase();
-      const { fest, ticket, price, marketplace } = this.state;
-
+      const { ticket, price, marketplace } = this.state;
       const nftInstance = await FestivalNFT(this.state.fest);
-      const listResult = await nftInstance.methods.setSaleDetails(ticket, web3.utils.toWei(price, 'ether'), marketplace).send({ from: initiator, gas: 6700000 });
-      console.log('test', { fest, ticket, price, marketplace });
-      console.log('console list result', listResult);
+      await nftInstance.methods.setSaleDetails(ticket, web3.utils.toWei(price, 'ether'), marketplace).send({ from: initiator, gas: 6700000 });
 
       renderNotification('success', 'Success', `Ticket is listed for sale in secondary market!`);
-
     } catch (err) {
       console.log('Error while lisitng for sale', err);
-      renderNotification('danger', 'Error', err.message);
+      renderNotification('danger', 'Error', err.message.split(' ').slice(8).join(' '));
     }
   }
-
-
 
   updateFestivals = async () => {
     try {
       const initiator = await web3.eth.getCoinbase();
       const activeFests = await festivalFactory.methods.getActiveFests().call({ from: initiator });
       const festDetails = await festivalFactory.methods.getFestDetails(activeFests[0]).call({ from: initiator });
-      const renderData = activeFests.map((fest, i) => (
-        <option key={fest} value={fest} >{festDetails[0]}</option>
-      ));
+      const renderData = await Promise.all(activeFests.map(async (fest, i) => {
+        const festDetails = await festivalFactory.methods.getFestDetails(activeFests[i]).call({ from: initiator });
+        return (
+          <option key={fest} value={fest} >{festDetails[0]}</option>
+        )
+      }));
 
       this.setState({ fests: renderData, fest: activeFests[0], marketplace: festDetails[4] });
-
       this.updateTickets();
     } catch (err) {
       renderNotification('danger', 'Error', 'Error while updating the fetivals');
@@ -73,8 +67,6 @@ class MyTickets extends Component {
       const initiator = await web3.eth.getCoinbase();
       const nftInstance = await FestivalNFT(this.state.fest);
       const tickets = await nftInstance.methods.getTicketsOfCustomer(initiator).call({ from: initiator });
-      console.log('console nft', tickets);
-
       const renderData = tickets.map((ticket, i) => (
         <option key={ticket} value={ticket} >{ticket}</option>
       ));
@@ -97,7 +89,7 @@ class MyTickets extends Component {
 
       const initiator = await web3.eth.getCoinbase();
       const festDetails = await festivalFactory.methods.getFestDetails(fest).call({ from: initiator });
-      console.log('console marketPlace', festDetails);
+
       this.setState({ marketplace: festDetails[4] });
     } catch (err) {
       console.log('Error while tickets for festival', err.message);
@@ -111,20 +103,15 @@ class MyTickets extends Component {
 
   inputChangedHandler = (e) => {
     const state = this.state;
-    console.log('input', e.target.name, e.target.value)
     state[e.target.name] = e.target.value;
     this.setState(state);
-
   }
 
   render() {
     return (
-
       <div class="container center" >
-
         <div class="row">
           <div class="container ">
-
             <div class="container ">
               <h5 style={{ padding: "30px 0px 0px 10px" }}>My Tickets</h5>
               <form class="" onSubmit={this.onListForSale}>
@@ -143,18 +130,12 @@ class MyTickets extends Component {
 
                 <label class="left">Sale Price</label><input id="price" placeholder="Sale Price" type="text" className="input-control" name="price" onChange={this.inputChangedHandler} /><br /><br />
 
-
                 <button type="submit" className="custom-btn login-btn">List for Sale</button>
               </form>
             </div>
           </div>
         </div>
-        {/* ticket, price, marketplace */}
-        {this.state.marketplace} <br></br>
-        {this.state.price} <br></br>
-        {this.state.ticket} <br></br>
       </div >
-
     )
   }
 }

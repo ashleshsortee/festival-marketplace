@@ -1,5 +1,5 @@
 import Provider from './Provider';
-import FestivalFactoryABI from '../abi/FestiveTicketsFactory.json';
+import FestivalFactoryABI from '../abi/contracts/FestiveTicketsFactory.json';
 
 const provider = new Provider();
 
@@ -15,7 +15,6 @@ class FestivalFactory {
   }
 
   getInstance = () => this.instance;
-
 }
 
 const festivalFactory = new FestivalFactory();

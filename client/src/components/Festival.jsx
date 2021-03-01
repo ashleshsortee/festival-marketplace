@@ -35,16 +35,10 @@ class Festival extends Component {
         supply
       ).send({ from: organiser, gas: 6700000 });
 
-
-      console.log('console result', ntfAddress);
-
       const nftInstance = await FestivalNFT(ntfAddress);
-
-      const mintResult = await nftInstance.methods.bulkMintTickets(30, marketplaceAddress).send({ from: organiser, gas: 6700000 });
-      console.log('console mintResult', mintResult);
+      await nftInstance.methods.bulkMintTickets(30, marketplaceAddress).send({ from: organiser, gas: 6700000 });
 
       renderNotification('success', 'Success', `Festival Created Successfully!`);
-
     } catch (err) {
       console.log('Error while creating new festival', err);
       renderNotification('danger', 'Error', `${err.message}`);
@@ -53,19 +47,15 @@ class Festival extends Component {
 
   inputChangedHandler = (e) => {
     const state = this.state;
-    console.log('input', e.target.name, e.target.value)
     state[e.target.name] = e.target.value;
     this.setState(state);
   }
 
   render() {
     return (
-
       <div class="container center" >
-
         <div class="row">
           <div class="container ">
-
             <div class="container ">
               <h5 style={{ padding: "30px 0px 0px 10px" }}>Create new Festival</h5>
               <form class="" onSubmit={this.onCreateFestival}>
@@ -77,12 +67,9 @@ class Festival extends Component {
                 <button type="submit" className="custom-btn login-btn">Create Festival</button>
               </form>
             </div>
-
           </div>
         </div>
-
       </div >
-
     )
   }
 }

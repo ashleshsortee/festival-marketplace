@@ -11,6 +11,7 @@ class App extends Component {
 
   constructor() {
     super();
+
     new Promise((resolve, reject) => {
       if (typeof window.ethereum !== 'undefined') {
         const web3 = new Web3(window.ethereum);
@@ -30,7 +31,7 @@ class App extends Component {
           new Web3(window.web3.currentProvider)
         );
       }
-      resolve(new Web3('http://localhost:8545'));
+      resolve(new Web3('http://127.0.0.1:8545'));
     });
 
     window.ethereum.on('accountsChanged', function () {
@@ -41,6 +42,7 @@ class App extends Component {
   render() {
     return (
       <Router>
+
         <div >
           <ReactNotification />
           <nav style={{ padding: '0px 30px 0px 30px' }}>
@@ -67,6 +69,7 @@ class App extends Component {
             <Route path="/tickets" component={MyTickets} />
           </Switch>
         </div>
+
       </Router >
     )
   }

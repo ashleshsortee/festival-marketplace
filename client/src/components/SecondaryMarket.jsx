@@ -32,20 +32,16 @@ class SecondaryMarket extends Component {
     }
   }
 
-
   updateTickets = async () => {
     try {
-      const { fest, festName } = this.state;
+      const { festName } = this.state;
       const initiator = await web3.eth.getCoinbase();
       const nftInstance = await FestivalNFT(this.state.fest);
       const saleTickets = await nftInstance.methods.getTicketsForSale().call({ from: initiator });
-
       const renderData = await Promise.all(saleTickets.map(async ticketId => {
         const { purchasePrice, sellingPrice, forSale } = await nftInstance.methods.getTicketDetails(ticketId).call({ from: initiator });
-        console.log('console details', { purchasePrice, sellingPrice, forSale });
 
         if (forSale) {
-          console.log('console selling price', ticketId);
           return (
             <tr key={ticketId}>
               <td class="center">{festName}</td>
@@ -56,13 +52,9 @@ class SecondaryMarket extends Component {
             </tr>
           );
         }
-
       }));
 
-      console.log('console renderData', renderData);
       this.setState({ renderTickets: renderData });
-
-
     } catch (err) {
       renderNotification('danger', 'Error', 'Error wile updating sale tickets');
       console.log('Error wile updating sale tickets', err);
@@ -73,14 +65,8 @@ class SecondaryMarket extends Component {
     try {
       const { marketplace } = this.state;
       const marketplaceInstance = await FestivalMarketplace(marketplace);
-      console.log('console sellingPrice', sellingPrice);
-      const approvalResult = await festToken.methods.approve(marketplace, sellingPrice).send({ from: initiator, gas: 6700000 });
-      console.log('console approvalResult', approvalResult);
-
-
-      const purchaseResult = await marketplaceInstance.methods.secondaryPurchase(ticketId).send({ from: initiator, gas: 6700000 });
-      console.log('console purchaseResult', purchaseResult);
-
+      await festToken.methods.approve(marketplace, sellingPrice).send({ from: initiator, gas: 6700000 });
+      await marketplaceInstance.methods.secondaryPurchase(ticketId).send({ from: initiator, gas: 6700000 });
       await this.updateTickets()
 
       renderNotification('success', 'Success', 'Ticket purchased for the festival successfully!');
@@ -96,17 +82,19 @@ class SecondaryMarket extends Component {
       const initiator = await web3.eth.getCoinbase();
       const activeFests = await festivalFactory.methods.getActiveFests().call({ from: initiator });
       const festDetails = await festivalFactory.methods.getFestDetails(activeFests[0]).call({ from: initiator });
-      const renderData = activeFests.map((fest, i) => (
-        <option key={fest} value={fest} >{festDetails[0]}</option>
-      ));
-      this.setState({ fests: renderData, fest: activeFests[0], marketplace: festDetails[4], festName: festDetails[0] });
+      const renderData = await Promise.all(activeFests.map(async (fest, i) => {
+        const festDetails = await festivalFactory.methods.getFestDetails(activeFests[i]).call({ from: initiator });
+        return (
+          <option key={fest} value={fest} >{festDetails[0]}</option>
+        )
+      }));
 
+      this.setState({ fests: renderData, fest: activeFests[0], marketplace: festDetails[4], festName: festDetails[0] });
     } catch (err) {
       renderNotification('danger', 'Error', 'Error while updating the fetivals');
       console.log('Error while updating the fetivals', err);
     }
   }
-
 
   onFestivalChangeHandler = async (e) => {
     const state = this.state;
@@ -114,10 +102,9 @@ class SecondaryMarket extends Component {
     this.setState(state);
 
     const { fest } = this.state;
-
     const initiator = await web3.eth.getCoinbase();
     const festDetails = await festivalFactory.methods.getFestDetails(fest).call({ from: initiator });
-    console.log('console marketPlace', festDetails);
+
     this.setState({ marketplace: festDetails[4] });
     await this.updateTickets();
   }
@@ -131,13 +118,11 @@ class SecondaryMarket extends Component {
 
   render() {
     return (
-
       <div class="container center" >
-
         <div class="row">
           <div class="container ">
-
             <div class="container ">
+
               <h5 style={{ padding: "30px 0px 0px 10px" }}>Secondary Marketplace</h5>
 
               <label class="left">Festival</label>
@@ -145,7 +130,6 @@ class SecondaryMarket extends Component {
                 <option value="" disabled >Select Festival</option>
                 {this.state.fests}
               </select><br /><br />
-
 
               <h4 class="center">Purchase Tickets</h4>
 
@@ -163,13 +147,10 @@ class SecondaryMarket extends Component {
                 </tbody>
               </table>
 
-
-
             </div>
           </div>
         </div>
       </div >
-
     )
   }
 }
