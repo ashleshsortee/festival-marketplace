@@ -15,6 +15,9 @@ contract FestivalMarketplace {
         _organiser = _festival.getOrganiser();
     }
 
+    event Purchase(address indexed buyer, address seller, uint256 ticketId);
+
+    // Purchase tickets from the organiser directly
     function purchaseTicket() public {
         address buyer = msg.sender;
 
@@ -23,19 +26,18 @@ contract FestivalMarketplace {
         _festival.transferTicket(buyer);
     }
 
+    // Purchase ticket from the secondary market hosted by organiser
     function secondaryPurchase(uint256 ticketId) public {
         address seller = _festival.ownerOf(ticketId);
         address buyer = msg.sender;
         uint256 sellingPrice = _festival.getSellingPrice(ticketId);
         uint256 commision = (sellingPrice * 10) / 100;
 
-        // 1. Seller approve deligate approval to address(this) for amount sellingPrice + commision
-        // 2. address.this transfers commision to organiser
-        // 3. address(this) transfers sellingPrice to buyer
-
         _token.transferFrom(buyer, seller, sellingPrice - commision);
         _token.transferFrom(buyer, _organiser, commision);
 
         _festival.secondaryTransferTicket(buyer, ticketId);
+
+        emit Purchase(buyer, seller, ticketId);
     }
 }

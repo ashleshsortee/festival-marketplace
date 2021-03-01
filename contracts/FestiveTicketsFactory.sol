@@ -18,6 +18,7 @@ contract FestiveTicketsFactory is Ownable {
 
     event Created(address ntfAddress, address marketplaceAddress);
 
+    // Creates new NFT and a marketplace for its purchase
     function createNewFest(
         FestToken token,
         string memory festName,
@@ -53,10 +54,12 @@ contract FestiveTicketsFactory is Ownable {
         return newFestAddress;
     }
 
+    // Get all active fests
     function getActiveFests() public view returns (address[] memory) {
         return activeFests;
     }
 
+    // Get fest's details
     function getFestDetails(address festAddress)
         public
         view
