@@ -5,9 +5,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract FestivalNFT is Context, AccessControl, ERC721 {
+contract FestivalNFT is Context, AccessControl {
     using Counters for Counters.Counter;
 
+    ERC721 private _nftToken;
     Counters.Counter private _ticketIds;
     Counters.Counter private _saleTicketId;
 
@@ -28,13 +29,15 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
     mapping(uint256 => TicketDetails) private _ticketDetails;
     mapping(address => uint256[]) private purchasedTickets;
 
-    constructor(
+    function init(
         string memory festName,
-        string memory FestSymbol,
+        string memory festSymbol,
         uint256 ticketPrice,
         uint256 totalSupply,
         address organiser
-    ) public ERC721(festName, FestSymbol) {
+    ) public {
+        // super(festName, FestSymbol);
+        _nftToken = new ERC721(festName, festSymbol);
         _setupRole(MINTER_ROLE, organiser);
 
         _ticketPrice = ticketPrice;
@@ -82,7 +85,7 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
     {
         _ticketIds.increment();
         uint256 newTicketId = _ticketIds.current();
-        _mint(operator, newTicketId);
+        _nftToken._mint(operator, newTicketId);
 
         _ticketDetails[newTicketId] = TicketDetails({
             purchasePrice: _ticketPrice,
@@ -123,11 +126,15 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         uint256 saleTicketId = _saleTicketId.current();
 
         require(
-            msg.sender == ownerOf(saleTicketId),
+            msg.sender == _nftToken.ownerOf(saleTicketId),
             "Only initial purchase allowed"
         );
 
-        transferFrom(ownerOf(saleTicketId), buyer, saleTicketId);
+        _nftToken.transferFrom(
+            _nftToken.ownerOf(saleTicketId),
+            buyer,
+            saleTicketId
+        );
 
         if (!isCustomerExist(buyer)) {
             customers.push(buyer);
@@ -147,10 +154,10 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
         public
         isValidSellAmount(saleTicketId)
     {
-        address seller = ownerOf(saleTicketId);
+        address seller = _nftToken.ownerOf(saleTicketId);
         uint256 sellingPrice = _ticketDetails[saleTicketId].sellingPrice;
 
-        transferFrom(seller, buyer, saleTicketId);
+        _nftToken.transferFrom(seller, buyer, saleTicketId);
 
         if (!isCustomerExist(buyer)) {
             customers.push(buyer);
@@ -198,7 +205,7 @@ contract FestivalNFT is Context, AccessControl, ERC721 {
             ticketsForSale.push(ticketId);
         }
 
-        approve(operator, ticketId);
+        _nftToken.approve(operator, ticketId);
     }
 
     // Get ticket actual price

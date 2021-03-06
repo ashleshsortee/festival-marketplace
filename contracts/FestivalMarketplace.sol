@@ -9,7 +9,7 @@ contract FestivalMarketplace {
 
     address private _organiser;
 
-    constructor(FestToken token, FestivalNFT festival) public {
+    function init(FestToken token, FestivalNFT festival) external {
         _token = token;
         _festival = festival;
         _organiser = _festival.getOrganiser();

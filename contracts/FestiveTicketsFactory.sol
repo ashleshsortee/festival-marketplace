@@ -3,8 +3,9 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./FestivalNFT.sol";
 import "./FestivalMarketplace.sol";
+import "./CloneFactory.sol";
 
-contract FestiveTicketsFactory is Ownable {
+contract FestiveTicketsFactory is Ownable, CloneFactory {
     struct Festival {
         string festName;
         string festSymbol;
@@ -13,10 +14,19 @@ contract FestiveTicketsFactory is Ownable {
         address marketplace;
     }
 
+    address nftMasterContract;
+    address marketplaceMasterContract;
     address[] private activeFests;
     mapping(address => Festival) private activeFestsMapping;
 
     event Created(address ntfAddress, address marketplaceAddress);
+
+    constructor(address _nftMasterContract, address _marketplaceMasterContract)
+        public
+    {
+        nftMasterContract = _nftMasterContract;
+        marketplaceMasterContract = _marketplaceMasterContract;
+    }
 
     // Creates new NFT and a marketplace for its purchase
     function createNewFest(
@@ -26,17 +36,31 @@ contract FestiveTicketsFactory is Ownable {
         uint256 ticketPrice,
         uint256 totalSupply
     ) public onlyOwner returns (address) {
-        FestivalNFT newFest =
-            new FestivalNFT(
-                festName,
-                festSymbol,
-                ticketPrice,
-                totalSupply,
-                msg.sender
-            );
+        // FestivalNFT newFest =
+        //     new FestivalNFT(
+        // festName,
+        // festSymbol,
+        // ticketPrice,
+        // totalSupply,
+        // msg.sender
+        //     );
+
+        FestivalNFT newFest = FestivalNFT(createClone(nftMasterContract));
+        newFest.init(
+            festName,
+            festSymbol,
+            ticketPrice,
+            totalSupply,
+            msg.sender
+        );
+
+        // FestivalMarketplace newMarketplace =
+        //     new FestivalMarketplace(token, newFest);
 
         FestivalMarketplace newMarketplace =
-            new FestivalMarketplace(token, newFest);
+            FestivalMarketplace(createClone(marketplaceMasterContract));
+
+        newMarketplace.init(token, newFest);
 
         address newFestAddress = address(newFest);
 
