@@ -35,10 +35,26 @@ class Festival extends Component {
         supply
       ).send({ from: organiser, gas: 6700000 });
 
-      const nftInstance = await FestivalNFT(ntfAddress);
-      await nftInstance.methods.bulkMintTickets(30, marketplaceAddress).send({ from: organiser, gas: 6700000 });
-
       renderNotification('success', 'Success', `Festival Created Successfully!`);
+
+      const nftInstance = await FestivalNFT(ntfAddress);
+      const batches = Math.ceil(supply / 30);
+      let batchSupply = 30;
+      let curCount = 0
+      let prevCount = 0
+
+      if (supply < 30) {
+        const res = await nftInstance.methods.bulkMintTickets(supply, marketplaceAddress).send({ from: organiser, gas: 6700000 });
+      } else {
+        for (let i = 0; i < batches; i++) {
+          prevCount = curCount;
+          curCount += 30;
+          if (supply < curCount) {
+            batchSupply = supply - prevCount;
+          }
+          const res = await nftInstance.methods.bulkMintTickets(batchSupply, marketplaceAddress).send({ from: organiser, gas: 6700000 });
+        }
+      }
     } catch (err) {
       console.log('Error while creating new festival', err);
       renderNotification('danger', 'Error', `${err.message}`);
@@ -74,4 +90,4 @@ class Festival extends Component {
   }
 }
 
-export default Festival;  
+export default Festival;

@@ -34,12 +34,15 @@ class SecondaryMarket extends Component {
 
   updateTickets = async () => {
     try {
-      const { festName } = this.state;
+      const { fest } = this.state;
       const initiator = await web3.eth.getCoinbase();
       const nftInstance = await FestivalNFT(this.state.fest);
       const saleTickets = await nftInstance.methods.getTicketsForSale().call({ from: initiator });
       const renderData = await Promise.all(saleTickets.map(async ticketId => {
         const { purchasePrice, sellingPrice, forSale } = await nftInstance.methods.getTicketDetails(ticketId).call({ from: initiator });
+
+        const festDetails = await festivalFactory.methods.getFestDetails(fest).call({ from: initiator });
+        const [festName] = Object.values(festDetails);
 
         if (forSale) {
           return (
@@ -155,4 +158,4 @@ class SecondaryMarket extends Component {
   }
 }
 
-export default SecondaryMarket;  
+export default SecondaryMarket;
